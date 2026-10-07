@@ -1,55 +1,43 @@
 # Rubric: is this plan ready to post and build from?
 
-<!--
-THIS IS THE PART YOU WRITE. The skill in SKILL.md executes whatever
-checks you define here (via your procedure.md). It ships empty on
-purpose: the judgment is your work.
+Every check below names a part of the package I can point at and a decision
+rule someone else could apply to that same part and reach my answer. I grade
+the plan, never its formatting: a terse plan that names its cause, its site,
+its boundary, and its observable test passes, and a long confident one that
+contradicts its own repro evidence, or grows into a redesign, does not.
 
-A filled rubric must contain:
-
-1. At least one row in the checks table. Each row needs all four
-   columns:
-   - Check: a short name (used in the output JSON).
-   - Evidence: exactly what to look at, and where in the package. Name
-     the part (the plan's scope statement, the test plan read against
-     the repro evidence's steps, the plan comment read against the
-     thread highlights, the repo-facts block) or a location from your
-     references/evidence-guide.md. "The plan" is not a source; "the
-     plan's stated cause read against what the repro evidence shows"
-     is.
-   - Pass condition: a decision rule about the OUTCOME that someone
-     else could apply and get your answer. Judge the thing itself (is
-     this one bounded change? could a stranger start executing it?),
-     never the write-up's shape (how many sections it has, how long it
-     is, whether it uses headings). Structure-shaped checks are what
-     make graders disagree with themselves.
-   - Weight: `required` (a fail here holds the package) or `preferred`
-     (never changes the verdict).
-
-2. A verdict rule below the table: how the check grades combine into
-   accept (ready) or reject (hold), including how `unclear` is
-   treated. The verdict space is binary. If you write no rule for
-   `unclear`, the skill treats it as fail.
-
-Cover what actually gets bad plans posted. The lecture named the
-failure families: the diagnosis ignores or contradicts the reproduced
-evidence, the change is unbounded (scope creep), the plan targets the
-symptom while the evidence points at the cause, a stranger could not
-start executing it, the test plan proves nothing observable, the
-unknowns are dressed up as certainty, and the comment ignores what the
-thread or the repo's stated conventions ask. A rubric that ignores a
-family will fail eval packages designed around that family.
--->
+Two sources outrank everything else in a package, in this order: the repro
+evidence (what was actually run and shown) and then explicit maintainer
+direction in the thread. A plan may not overrule the repro evidence, even to
+follow a confident commenter. A plan may depart from maintainer direction,
+but only out loud.
 
 ## Checks
 
 | Check | Evidence | Pass condition | Weight |
 |---|---|---|---|
-|  |  |  |  |
+| `diagnosis-follows-repro` | The candidate plan's stated cause (its diagnosis line, plus whatever code location its approach changes) read against the repro evidence block: every step, every control run, and the Actual line. Read the controls hardest: a control is the repro's own test of which variable matters. | Fail if any of these hold. (a) A control run or step in the repro evidence rules out the cause the plan names: the same input succeeds with the blamed component still in the path, or the failure is already present before the blamed component runs. Worked example: a plan blaming a post-read string cast, against a repro step showing the values were already lost in the parsed table "before any cast to string could run", fails; so does a plan blaming a tokenizer when the repro's control run feeds the same items through the same tokenizer and they parse fine. (b) The plan's cause matches a confident claim from the thread or issue, but the repro evidence pins the behavior somewhere else. The repro evidence wins over the thread every time. Worked example: a plan adopting the thread's key-binding diagnosis, against a timing matrix showing the slowdown with no pager in the loop and with bindings unchanged, fails. (c) The plan's change only masks the symptom the repro shows (a documented workaround, a retry, a wider timeout around an unrelated fault) while the repro evidence or thread has isolated a cause in code, and the plan does not name that cause or say why it is out of reach. Pass when the stated cause explains every step and control in the repro evidence, including one restated straight from the issue when the repro confirms it. A plan that says its exact fix site "may be one layer up or down" from where it points still passes when the cause it names is the one the evidence shows. | required |
+| `change-bounded-to-issue` | The plan's in-scope list, approach steps, files or areas, and any "while I'm in here" item, plus the plan comment's description of the work, read against the single behavior the issue reports and the repro reproduces. | Pass when every piece of proposed work is either the fix for the reproduced behavior, a regression test for it, or a doc line describing that fix. Fail if the plan also proposes work the issue does not need to be fixed: a dependency migration or upgrade, a new option or settings field, a rewrite or restructure of the surrounding module, a cross-component unification, a CI matrix change, or a new framework (retry layer, state machine) around the fix. Count items, not tone: a plan that states the correct small fix and then bundles one or more of these fails, even when it offers to split them into a series. Worked example, FAIL: a one-constant timeout fix bundled with an HTTP client migration, a settings field, UI rework, and a retry wrapper. A plan that DEFERS related work with reasons ("not touching the direct-globset rework; that is a bigger change than this bug needs", "leaving the Windows variant out and will flag it in the PR") is NOT scope creep; deferral is the opposite of it. Splitting off a second symptom from the thread into a separate issue also passes. | required |
+| `stranger-can-start` | The plan's approach and files sections: the named files, modules, functions, or code sites, and whether one approach is chosen. | Pass when a stranger with the repo checked out could begin the first edit without asking the author anything: the plan names at least one concrete site to change (a file, module, function, or code branch) and commits to one approach there. Fail if the plan leaves the real decisions to build time: no file or module named at all; a choice left open between components or fix locations ("gocui? tcell? not sure", "upstream or vendored, whichever is easier", recover() "somewhere"); or an approach that is only an activity ("profile and optimize", "investigate the input stack", "poke around the editor code"). An open question that is a stated risk around a chosen approach ("I have not measured the per-check cost; if it shows up in the benchmark I will move the check to two call sites") does NOT fail this check. | required |
+| `test-observes-the-fix` | The plan's test plan, read against the repro evidence's steps and its Expected line. | Pass when the test plan names at least one observable outcome that would be false today and true after the fix, tied to the reproduced behavior: the repro re-run with its expected output or exit code, a regression test built from the issue's own case, or a measurable result ("sync succeeds 10 of 10 runs on the slow-connect setup"). Fail if the test plan names no observable for the fix itself: only "run the full test suite" or "make sure nothing regresses", a feeling ("should feel fast", "nothing else should feel broken"), or no test plan at all. Worked example, FAIL: an otherwise bounded, well-grounded plan whose whole test plan is "Run the full test suite and make sure nothing regresses": the suite passes today too, so it cannot show the fix happened. | required |
+| `comment-answers-maintainer-direction` | The thread highlights, reading only comments whose author role is OWNER, MEMBER, COLLABORATOR, or CONTRIBUTOR, against the candidate plan comment (and the plan's approach where the comment points at it). | First decide whether the thread contains explicit maintainer direction: a maintainer-role comment that names the culprit code location, proposes or endorses a specific fix approach, rejects an approach, or posts a patch or test build and asks for testing. Opinions, questions, "that ain't right", or reproductions without a direction are not direction. If there is no explicit direction, this check PASSES. If there is, the plan comment passes when it visibly follows that direction (names the approach, location, or patch the maintainer gave) OR names that direction and states why the plan departs from it. Fail when the comment proposes a different approach and never mentions the maintainer's direction. Worked example, FAIL: the owner isolates the culprit in `src/tui/light_windows.go`, posts a patched test binary, and asks for testing; the plan comment proposes a documentation-only workaround and never mentions the culprit, the patch, or the request. Worked example, PASS: two maintainers settle on wiring a named constant into a named function, and the comment says it will implement "along the lines already agreed here". Engaging an open PR from a non-maintainer ("if that lands first I will rebase my tests onto it") is welcome but not required by this check. | required |
+| `ai-disclosure-when-policy-requires` | The `- contribution policy` line in the repo-facts block, read for its modal verb and the scope of any disclosure duty, against the candidate plan comment. Treat every package as AI-assisted work: the question is never whether AI was used, only whether this repo's policy obliges the author to say so in the comment being posted. | Decide by the policy line, in this order. (1) No AI policy stated: PASS whether or not the comment discloses. (2) The policy sets terms of use but no disclosure duty (AI welcome with a human in the loop; you are responsible for what you submit; only submit code you understand; low-quality AI content is closed; reviews AI-generated PRs selectively): PASS whether or not the comment discloses. (3) The policy requires disclosure, but scopes it to a different artifact than a plan comment, most often "in the pull request", or says it asks no disclosure for issue comments: PASS with no disclosure. A policy that says comments must be "written by humans in their own words" restricts authorship, not disclosure: PASS when the comment reads as a person's own words about this issue. (4) FAIL only when the policy states a mandatory disclosure duty whose scope covers comments or issues, or "all AI usage in any form", and the plan comment never names AI assistance. Worked example, FAIL: "All AI usage in any form must be disclosed, stating the tool used and the extent of the assistance", against an otherwise excellent plan comment that never mentions AI. A package that fails here fails however good the plan is: posting under that rule without disclosing is the harm. | required |
+| `unknowns-named` | The plan's risk or open-question lines and the plan comment's confidence, read against what the repro evidence did not cover (untested platforms, unmeasured cost, unverified tools, an uncertain fix site). | Prefer a plan that names what it has not verified and what it will do about it: "verified gzip, xz, and zstd locally and will verify the remaining three", "I cannot test the Windows variant, so I am leaving it out", "the exact clamp site may be one layer up or down". Never changes a verdict: a small plan with nothing material left unknown is complete without a risk line. | preferred |
 
 ## Verdict rule
 
-<!-- State how the grades above combine into accept or reject, and how
-unclear is treated. Example shape (write your own): "accept if every
-required check passes; preferred checks never change the verdict;
-unclear counts as fail." -->
+`accept` if and only if every `required` check grades `pass`. A single
+`required` fail produces `reject`, and the read-out names the check that sank
+it. There is no averaging: each required check is a separate way a posted
+plan wastes a maintainer's time or builds the wrong thing, and one is enough.
+
+`unclear` on a required check counts as `fail`. A plan whose cause, boundary,
+starting point, test, thread obligations, or disclosure duty I cannot
+establish from the package is not one a stranger can build from. One
+exception: evidence that is present and explicitly negative is evidence of
+absence and grades `pass`. That covers "no stated AI policy" on the policy
+line, a thread with no maintainer-role comments or no direction in them, and
+a policy that says it asks no disclosure for issue comments.
+
+`preferred` checks never change a verdict. Grade and report them; they say
+how strong an accepted plan is, not whether it is accepted.

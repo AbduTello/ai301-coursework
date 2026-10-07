@@ -17,7 +17,7 @@ ships.
 Only issues in the course's Path Review repository are in scope this
 week:
 
-- Repo: `<ORG>/<PATH-REVIEW-REPO>` <!-- paste your section's repo from the Unit 1 Check-In page -->
+- Repo: `codepath/pathreview-ai301-fa26-s1`
 
 The repo line above ships as a bracketed placeholder; replacing it is
 step 1 of this unit's assignment. If you do not know your section's
